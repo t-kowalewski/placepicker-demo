@@ -22,7 +22,7 @@ function useFetch(fetchFn) {
     })();
   }, [fetchFn]);
 
-  return [isLoading, data, error];
+  return [isLoading, data, setData, error];
 }
 
 export default useFetch;
