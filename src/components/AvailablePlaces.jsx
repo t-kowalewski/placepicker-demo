@@ -1,52 +1,39 @@
-import { useState, useEffect } from 'react';
-
+import useFetch from '../hooks/useFetch.js';
 import { sortPlacesByDistance } from '../loc.js';
 import { fetchAwailablePlaces } from '../http.js';
 import Places from './Places.jsx';
 import ErrorMsg from './ErrorMsg.jsx';
 
-export default function AvailablePlaces({ onSelectPlace }) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [availablePlaces, setAvailablePlaces] = useState([]);
-  const [error, setError] = useState(null);
+// Helper function
+const fetchAndSort = async () => {
+  const places = await fetchAwailablePlaces();
 
-  useEffect(() => {
-    //send http request > update state when ready
-    (async function () {
-      setIsLoading(true);
+  return new Promise((resolve) => {
+    // get user's locations
+    navigator.geolocation.getCurrentPosition(
+      // user accepts location
+      (pos) => {
+        const crd = pos.coords;
 
-      try {
-        const places = await fetchAwailablePlaces();
-
-        // get user's locations
-        navigator.geolocation.getCurrentPosition(
-          // user accepts location
-          (pos) => {
-            const crd = pos.coords;
-
-            const sortedPlases = sortPlacesByDistance(
-              places,
-              crd.latitude,
-              crd.longitude
-            );
-            setAvailablePlaces(sortedPlases);
-            setIsLoading(false);
-          },
-          // user blocks location
-          () => {
-            alert("Can't sort places by location");
-            setAvailablePlaces(places);
-            setIsLoading(false);
-          }
+        const sortedPlases = sortPlacesByDistance(
+          places,
+          crd.latitude,
+          crd.longitude
         );
-      } catch (error) {
-        setError({
-          message: error.message || 'Error occured. Please try again later',
-        });
-        setIsLoading(false);
+        resolve(sortedPlases);
+      },
+      // user blocks location
+      () => {
+        alert("Can't sort places by location");
+        resolve(places);
       }
-    })();
-  }, []);
+    );
+  });
+};
+
+// Component function
+export default function AvailablePlaces({ onSelectPlace }) {
+  const [isLoading, availablePlaces, , error] = useFetch(fetchAndSort);
 
   if (error) {
     return <ErrorMsg title='An error occured!' message={error.message} />;
